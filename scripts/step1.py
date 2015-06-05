@@ -8,7 +8,6 @@ from datetime import datetime
 dev = ""
 
 DEPOSIT_DIR = dev + "/tspace_scratch/nrc/deposit/"
-REPORT_DIR = dev + "/tspace_scratch/nrc/reports/ingest_report"
 WORK_DIR = dev + "/tspace_scratch/nrc/prepare/"
 
 DOI_BASE = "http://www.nrcresearchpress.com/doi/abs/"
@@ -62,7 +61,7 @@ class NRCZipParser:
 			tag_list.append(makesoup("<dcvalue element='title' qualifier='vernacular'>" + soup.VernacularTitle.string + "</dcvalue>", 'xml').contents[0])
 		for author in soup.find_all("Author"):			
 			middle_name = " " + author.MiddleName.string if author.MiddleName.string else ''
-			tag_list.append(makesoup("<dcvalue element='contributor' qualifier='author'>" + author.LastName.string + ", " + author.FirstName.string + middle_name + "</dcvalue>", 'xml').contents[0])
+			tag_list.append(makesoup("<dcvalue element='contributor' qualifier='author'>" + author.FirstName.string + " " + middle_name + " " + author.LastName.string + "</dcvalue>", 'xml').contents[0])
 			if author.Affiliation.string: 
 				tag_list.append(makesoup("<dcvalue element='affiliation' qualifier='institution'>" + author.Affiliation.string + "</dcvalue>", 'xml').contents[0])
 		tag_list.append(makesoup("<dcvalue element='type'>" + soup.PublicationType.string + "</dcvalue>", 'xml').contents[0])		

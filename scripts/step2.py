@@ -21,7 +21,7 @@ CURRENT_TIME = datetime.now().strftime("_%-I%p_%-M_%-S")
 CURRENT_TIME_HUMAN = datetime.now().strftime("%-I:%-M%p")
 
 nrc_collections = {
-    "apnm" : "1807/65451",
+    "apnm" : "1807/67550",
     "as" : "1807/67833",
     "bcb" : "1807/67552",
     "b" : "1807/67554",
@@ -31,13 +31,13 @@ nrc_collections = {
     "cjes" : "1807/67562",
     "cjfas" : "1807/67564",
     "cjfr" : "1807/67566",
-    "cjm" : "1807/65513", #"1807/65469",
+    "cjm" : "1807/67568", #"1807/65469",
     "cjp" : "1807/67570",
     "cjpp" : "1807/67572",
     "cjz" : "1807/67574",
     "er" : "1807/67576",
-        "g" : "1807/67578",
-        "juvs" : "1807/67580" 
+    "g" : "1807/67578",
+    "juvs" : "1807/67580" 
 }
 
 nrc_collections_dev = {
@@ -66,31 +66,20 @@ def archive():
 		1. Backup the ingested DSpace simple archives into the archiving directory for potentially reingestion
 		2. Backup the original zipfiles	
 	'''
-
 	# backup DSpace simple archives	
-        os.chdir(WORK_DIR)
-        destination = ARCHIVE_DSA_DIR + DATE
+	os.chdir(WORK_DIR)
+	destination = ARCHIVE_DSA_DIR + DATE
 	try:
-	        os.mkdir(destination)
+		os.mkdir(destination)
 	except OSError:
 		pass
-        indent = "\t"
-        for journal_folder in os.listdir("."):
-                print "Archiving " + journal_folder
-                count = 1
-                for folder in os.listdir(journal_folder):
-                        print indent + folder
-                        shutil.move(os.path.join(journal_folder, folder), destination)
-
-	# backup original zip files
-	os.chdir(DEPOSIT_DIR)
-	dest = ARCHIVE_ZIP_DIR + DATE 
-	try:
-		os.mkdir(dest)
-	except OSError:
-		pass
-	for zipfile in os.listdir("."):
-		shutil.move(zipfile, dest)
+	indent = "\t"
+	for journal_folder in os.listdir("."):
+		print "Archiving " + journal_folder
+		count = 1
+		for folder in os.listdir(journal_folder):
+			print indent + folder
+			shutil.move(os.path.join(journal_folder, folder), destination)
 
 def upload():
         '''Upload all dspace simple archives from WORK_DIR to each journal's target collection'''
@@ -159,13 +148,17 @@ def email(last_report):
     fp.close()
 
     newman = 'tspace@library.utoronto.ca'
-    hawaii = ['xiaofeng.zhao@utoronto.ca', 'courtney.bodi@mail.utoronto.ca', 'mariya.maistrovskaya@utoronto.ca']
+    hawaii = ['xiaofeng.zhao@utoronto.ca', 'courtney.bodi@mail.utoronto.ca', 'mariya.maistrovskaya@utoronto.ca', 'Accepted.manuscripts@cdnsciencepub.com']
 
-    body['Subject'] = 'NRC/CSP to U of T TSpace ingestion report'
+    body['Subject'] = 'NRC Research Press University of Toronto TSpace ingestion report'
     body['From'] = newman
     body['To'] = ", ".join(hawaii)
 
     jerry.sendmail(newman, hawaii, body.as_string()) # make sure not too many people get their mail
-                
-upload() #1.
-archive() #2.
+
+count = 0
+for nrc_zip in os.listdir(DEPOSIT_DIR):
+	count += 1
+if count > 0:
+	upload() #1.
+	archive() #2.

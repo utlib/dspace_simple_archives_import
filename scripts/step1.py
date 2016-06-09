@@ -8,7 +8,9 @@ from datetime import datetime
 dev = ""
 
 DEPOSIT_DIR = dev + "/tspace_scratch/nrc/deposit/"
-WORK_DIR = dev + "/tspace_scratch/nrc/prepare/"
+DEPOSIT_2016_DIR = dev + "/tspace_scratch/nrc/deposit_2016/"
+INGEST_DIR = dev + "/tspace_scratch/nrc/ingest/"
+EXTRACT_DIR = dev + "/tspace_scratch/nrc/extract/"
 
 DOI_BASE = "http://www.nrcresearchpress.com/doi/abs/"
 
@@ -18,15 +20,11 @@ DATE = datetime.now().strftime("%A %B %d %Y")
 class NRCZipParser:	
 	
 	def __init__(self, zipname):
-		# filename of the zipfile
-		self.zipname = zipname		
-		self.zipfile_path = DEPOSIT_DIR + zipname
-		# find out which journal this belongs to
-		self.journal_name = zipname.split("-")[0]		
-		# Extract into the working directory for Simple Archive preparation
 		z = ZipFile(DEPOSIT_DIR + zipname)
-		z.extractall(WORK_DIR + self.journal_name)
-		self.work_dir = WORK_DIR + self.journal_name + "/" + self.zipname[0:-4]
+		z.extractall(EXTRACT_DIR)
+                self.filename = zipname.split(".zip")[0]
+                self.work_dir = os.path.join(EXTRACT_DIR, self.filename)
+                self.journal_abbrv = zipname.split("-")[0]
 
 	def reorganize(self):
 		os.chdir(self.work_dir)
@@ -52,20 +50,22 @@ class NRCZipParser:
 		# map all the tags from the old soup
 		tag_list = []		
 		tag_list.append(makesoup("<dcvalue element='publisher'>NRC Research Press (a division of Canadian Science Publishing)</dcvalue>", 'xml').contents[0])
-		tag_list.append(makesoup("<dcvalue element='publication' qualifier='journal'>" + soup.JournalTitle.string + "</dcvalue>", 'xml').contents[0])
-		tag_list.append(makesoup("<dcvalue element='identifier' qualifier='issn'>" + soup.Issn.string + "</dcvalue>", 'xml').contents[0])
+		tag_list.append(makesoup("<dcvalue element='publication' qualifier='journal'>" + soup.JournalTitle.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
+		tag_list.append(makesoup("<dcvalue element='identifier' qualifier='issn'>" + soup.Issn.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
 		if soup.Replaces.string:
-			tag_list.append(makesoup("<dcvalue element='replaces'>" + soup.Replaces.string + "</dcvalue>", 'xml').contents[0])
-		tag_list.append(makesoup("<dcvalue element='title'>" + soup.ArticleTitle.string + "</dcvalue>", 'xml').contents[0])
+			tag_list.append(makesoup("<dcvalue element='replaces'>" + soup.Replaces.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
+		no_tag_title = soup.ArticleTitle.string.replace('<b>', '').replace('<i>', '').replace('</i>', '').replace('</b>','').replace('<sub>','').replace('</sub>','').replace('<sup>','').replace('</sup>','');
+		
+		tag_list.append(makesoup("<dcvalue element='title'>" + no_tag_title + "</dcvalue>", 'xml').contents[0])
 		if soup.VernacularTitle.string:
-			tag_list.append(makesoup("<dcvalue element='title' qualifier='vernacular'>" + soup.VernacularTitle.string + "</dcvalue>", 'xml').contents[0])
+			tag_list.append(makesoup("<dcvalue element='title' qualifier='vernacular'>" + soup.VernacularTitle.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
 		for author in soup.find_all("Author"):			
-			middle_name = " " + author.MiddleName.string if author.MiddleName.string else ''
-			tag_list.append(makesoup("<dcvalue element='contributor' qualifier='author'>" + author.FirstName.string + " " + middle_name + " " + author.LastName.string + "</dcvalue>", 'xml').contents[0])
-			if author.Affiliation.string: 
-				tag_list.append(makesoup("<dcvalue element='affiliation' qualifier='institution'>" + author.Affiliation.string + "</dcvalue>", 'xml').contents[0])
-		tag_list.append(makesoup("<dcvalue element='type'>" + soup.PublicationType.string + "</dcvalue>", 'xml').contents[0])		
-		tag_list.append(makesoup("<dcvalue element='identifier' qualifier='doi'>" + DOI_BASE + soup.find(IdType="doi").string + "</dcvalue>", 'xml').contents[0])
+		        middle_name = " " + author.MiddleName.string if author.MiddleName.string else ''
+			tag_list.append(makesoup("<dcvalue element='contributor' qualifier='author'>" + author.LastName.string.encode('utf8') + ", " + author.FirstName.string.encode('utf8') + " " + middle_name.encode('utf8') + "</dcvalue>", 'xml').contents[0])
+			if author.Affiliation and author.Affiliation.string: 
+				tag_list.append(makesoup("<dcvalue element='affiliation' qualifier='institution'>" + author.Affiliation.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
+		tag_list.append(makesoup("<dcvalue element='type'>" + soup.PublicationType.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])		
+		tag_list.append(makesoup("<dcvalue element='identifier' qualifier='doi'>" + DOI_BASE + soup.find(IdType="doi").string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
 		year = soup.find(PubStatus="received").find("Year").string 
 		month = soup.find(PubStatus="received").find("Month").string
 		day = soup.find(PubStatus="received").find("Day").string
@@ -87,8 +87,9 @@ class NRCZipParser:
                         day = ''
 		tag_list.append(makesoup("<dcvalue element='date' qualifier='revised'>" + year + "-" + month + "-" + day + "</dcvalue>", 'xml').contents[0])
 		year = soup.find(PubStatus="accepted").find("Year").string
+                self.year = year
 		month = soup.find(PubStatus="accepted").find("Month").string
-		day = soup.find(PubStatus="accepted").find("Day").string
+		day = soup.find(PubStatus="accepted").find("Day").string            
 		if year is None:
                         year = ''
                 if month is None:
@@ -99,7 +100,8 @@ class NRCZipParser:
 		tag_list.append(makesoup("<dcvalue element='date' qualifier='accepted'>" + year + "-" + month + "-" + day + "</dcvalue>", 'xml').contents[0])
 		if soup.FullTextURL.string: 
 			tag_list.append(makesoup("<dcvalue element='identifier' qualifier='uri'>" + soup.FullTextURL.string + "</dcvalue>", 'xml').contents[0])
-		tag_list.append(makesoup("<dcvalue element='description' qualifier='abstract'>" + soup.Abstract.string + "</dcvalue>", 'xml').contents[0])
+		no_tag_abstract = soup.Abstract.string.replace('<b>', '').replace('<i>', '').replace('</i>', '').replace('</b>','').replace('<sub>','').replace('</sub>','');
+		tag_list.append(makesoup("<dcvalue element='description' qualifier='abstract'>" + no_tag_abstract.encode('utf8') + "</dcvalue>", 'xml').contents[0])
 		tag_list.append(makesoup("<dcvalue element='description' qualifier='disclaimer'>The accepted manuscript in pdf format is listed with the files at the bottom of this page. The presentation of the authors' names and (or) special characters in the title of the manuscript may differ slightly between what is listed on this page and what is listed in the pdf file of the accepted manuscript; that in the pdf file of the accepted manuscript is what was submitted by the author.</dcvalue>", "xml").contents[0])
 		
 		dc = newsoup.find('dublin_core')
@@ -121,14 +123,23 @@ class NRCZipParser:
 			if f not in ['dublin_core.xml', 'contents', self.manuscript] and not f.endswith("metadata.xml"):
 				contents.write(f + '\n')
 		contents.close()
+    
+        def ingest_prep(self):
+            ingest_path = os.path.join(INGEST_DIR, self.journal_abbrv, self.year)
+            print "The year is " + self.year
+            if not os.path.exists(ingest_path):
+                os.mkdir(ingest_path)                             
+            os.rename(self.work_dir, os.path.join(ingest_path, self.filename))                
 
 count = 0
 for nrc_zip in os.listdir(DEPOSIT_DIR):
 	if nrc_zip.endswith('.zip'): 
-		print "Parsing " + nrc_zip
-		parser = NRCZipParser(nrc_zip)
-		parser.reorganize()
-		parser.make_dc()
-		parser.make_contents()
-		count += 1
+            print "Parsing " + nrc_zip
+            parser = NRCZipParser(nrc_zip)
+            parser.reorganize()
+            parser.make_dc()
+            parser.make_contents()            
+            parser.ingest_prep() 
+            count += 1
+
 print "Parsed " + str(count) + " items in total"

@@ -1,4 +1,2 @@
-archive/dspace_simple_archives/*
-archive/original_zips/*
-deposit/*
-reports/*
+archive
+deposit

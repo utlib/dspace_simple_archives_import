@@ -55,13 +55,17 @@ class NRCZipParser:
 		if soup.Replaces.string:
 			tag_list.append(makesoup("<dcvalue element='replaces'>" + soup.Replaces.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
 		no_tag_title = soup.ArticleTitle.string.replace('<b>', '').replace('<i>', '').replace('</i>', '').replace('</b>','').replace('<sub>','').replace('</sub>','').replace('<sup>','').replace('</sup>','');
-		
 		tag_list.append(makesoup("<dcvalue element='title'>" + no_tag_title + "</dcvalue>", 'xml').contents[0])
-		if soup.VernacularTitle.string:
+
+		if soup.VernacularTitle.string:                        
 			tag_list.append(makesoup("<dcvalue element='title' qualifier='vernacular'>" + soup.VernacularTitle.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
+                
 		for author in soup.find_all("Author"):			
 		        middle_name = " " + author.MiddleName.string if author.MiddleName.string else ''
-			tag_list.append(makesoup("<dcvalue element='contributor' qualifier='author'>" + author.LastName.string.encode('utf8') + ", " + author.FirstName.string.encode('utf8') + " " + middle_name.encode('utf8') + "</dcvalue>", 'xml').contents[0])
+                        new_tag = newsoup.new_tag("dcvalue", element='contributor', qualifier='author')
+                        new_tag.string = author.LastName.string.encode('utf8') + ", " + author.FirstName.string.encode('utf8') + " " + middle_name.encode('utf8')
+                        newsoup.dublin_core.append(new_tag)
+ 
 			if author.Affiliation and author.Affiliation.string: 
 				tag_list.append(makesoup("<dcvalue element='affiliation' qualifier='institution'>" + author.Affiliation.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
 		tag_list.append(makesoup("<dcvalue element='type'>" + soup.PublicationType.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])		
@@ -139,7 +143,7 @@ for nrc_zip in os.listdir(DEPOSIT_DIR):
             parser.reorganize()
             parser.make_dc()
             parser.make_contents()            
-            parser.ingest_prep() 
+            #parser.ingest_prep() 
             count += 1
 
 print "Parsed " + str(count) + " items in total"

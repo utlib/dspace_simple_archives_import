@@ -143,7 +143,7 @@ for nrc_zip in os.listdir(DEPOSIT_DIR):
             parser.reorganize()
             parser.make_dc()
             parser.make_contents()            
-            #parser.ingest_prep() 
+            parser.ingest_prep() 
             count += 1
 
 print "Parsed " + str(count) + " items in total"

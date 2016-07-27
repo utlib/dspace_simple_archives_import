@@ -30,12 +30,15 @@ collection_handles = {
         "cgj" : "1807/67556",
         "cjc" : "1807/67558",
         "cjce" : "1807/67560",
+        "cjas" : "1807/73306",
         "cjes" : "1807/67562",
+        "cjps" : "1807/73307",
         "cjfas" : "1807/67564",
         "cjfr" : "1807/67566",
         "cjm" : "1807/67568", #"1807/65469",
         "cjp" : "1807/67570",
         "cjpp" : "1807/67572",
+        "cjss" : "1807/73308",
         "cjz" : "1807/67574",
         "er" : "1807/67576",
         "gen" : "1807/67578",
@@ -49,12 +52,15 @@ collection_handles = {
         "cgj" : "1807/71212",
         "cjc" : "1807/71213",
         "cjce" : "1807/71214",
+        "cjas" : "1807/73265",
         "cjes" : "1807/71215",
+        "cjps" : "1807/73263",
         "cjfas" : "1807/71216",
         "cjfr" : "1807/71217",
         "cjm" : "1807/71218",
         "cjp" : "1807/71207",
         "cjpp" : "1807/71219",
+        "cjss" : "1807/73264",
         "cjz" : "1807/71220",
         "er" : "1807/71221",
         "gen" : "1807/71222",
@@ -145,7 +151,7 @@ def email(last_report):
     fp.close()
 
     newman = 'tspace@library.utoronto.ca'
-    hawaii = ['xiaofeng.zhao@utoronto.ca', 'mariya.maistrovskaya@utoronto.ca', 'Accepted.manuscripts@cdnsciencepub.com']
+    hawaii = ['xiaofeng.zhao@utoronto.ca', 'mariya.maistrovskaya@utoronto.ca', 'Accepted.manuscripts@cdnsciencepub.com', 'tspace@library.utoronto.ca']
 
     body['Subject'] = 'NRC Research Press University of Toronto TSpace ingestion report'
     body['From'] = newman

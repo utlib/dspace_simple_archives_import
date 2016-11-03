@@ -130,20 +130,32 @@ class NRCZipParser:
     
         def ingest_prep(self):
             ingest_path = os.path.join(INGEST_DIR, self.journal_abbrv, self.year)
-            print "The year is " + self.year
             if not os.path.exists(ingest_path):
                 os.mkdir(ingest_path)                             
             os.rename(self.work_dir, os.path.join(ingest_path, self.filename))                
 
-count = 0
+        def email(message):
+            '''Send the report to the list of recipients'''
+
+            jerry = smtplib.SMTP('mailer.library.utoronto.ca')
+
+            fp = open(last_report)
+            body = MIMEText(fp.read())
+            fp.close()
+
+            newman = 'tspace@library.utoronto.ca'
+            hawaii = ['xiaofeng.zhao@utoronto.ca'] 
+
+            body['Subject'] = 'Email from step1.py of tspace.library.utoronto.ca'
+            body['From'] = newman
+            body['To'] = ", ".join(hawaii)
+
+            jerry.sendmail(newman, hawaii, body.as_string())
+
 for nrc_zip in os.listdir(DEPOSIT_DIR):
 	if nrc_zip.endswith('.zip'): 
-            print "Parsing " + nrc_zip
             parser = NRCZipParser(nrc_zip)
             parser.reorganize()
             parser.make_dc()
             parser.make_contents()            
             parser.ingest_prep() 
-            count += 1
-
-print "Parsed " + str(count) + " items in total"

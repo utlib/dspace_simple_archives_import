@@ -79,10 +79,12 @@ def archive():
         if not os.path.exists(destination):
             os.mkdir(destination)
 	for journal in os.listdir("."):
-            for year in os.listdir(os.path.join(INGEST_DIR, journal)):                
-                for item in os.listdir(os.path.join(INGEST_DIR, journal, year)):
-                    print "Archiving " + journal + " - " + year + " - " + item
-                    shutil.move(os.path.join(INGEST_DIR, journal, year, item), destination)
+	    for year in os.listdir(os.path.join(INGEST_DIR, journal)):                
+		for item in os.listdir(os.path.join(INGEST_DIR, journal, year)):
+		    shutil.move(os.path.join(INGEST_DIR, journal, year, item), destination)
+	os.chdir(DEPOSIT_DIR)
+	for zipfile in os.listdir("."):
+	    shutil.move(zipfile, ARCHIVE_ZIP_DIR)
 
 def upload():
         '''Upload all dspace simple archives from WORK_DIR to each journal's target collection'''
@@ -96,7 +98,6 @@ def upload():
         try:
                 os.mkdir(this_report_dir)
         except OSError, detail:
-                print detail # directory already exists due to a previous ingest
                 pass
         report = open(this_report_path, 'w')
         report.write("TSpace ingestion report for NRC Journal Press community\n\n")
@@ -104,33 +105,31 @@ def upload():
 
         total_ingested = 0
         for journal_folder in os.listdir("."):
-            print "Scanning " + journal_folder
+            #print "Scanning " + journal_folder
             for year_folder in os.listdir(journal_folder):
-                print indent + "Scanning " + journal_folder + " - " + year_folder
+                #print indent + "Scanning " + journal_folder + " - " + year_folder
                 count = 1
                 for folder in os.listdir(os.path.join(journal_folder, year_folder)):
-                        print indent + indent + str(count) + ". " + folder
+                        #print indent + indent + str(count) + ". " + folder
                         count += 1     
                         total_ingested += 1
                         report.write("Ingested " + folder + " for journal " + journal_folder + " for year " + year_folder + " \n\n")
-                if count == 1:
-                        print indent + "Nothing to upload"
-                else:   
+               	if count > 1:    
                         # call the dspace import shell script
                         user = "xiaofeng.zhao@utoronto.ca"
                         source = os.path.join(INGEST_DIR, journal_folder, year_folder)
                         collection = collection_handles["nrc_collections_" + year_folder][journal_folder]
                         mapfile = MAP_DIR + journal_folder + "_" + year_folder + DATE + CURRENT_TIME
-			print user, source, collection, mapfile
+			#print user, source, collection, mapfile
                         status = call(["sudo", "/opt/dspace/bin/dspace", "import", "-a", "-e", user, "-s", source, "-c", collection, "-m", mapfile])
                         if status != 0:
-                                print "Error: /opt/dspace/bin/dspace returned non-ok status"
+                                #print "Error: /opt/dspace/bin/dspace returned non-ok status"
 				report.close()
 				os.remove(this_report_path)
                                 sys.exit(1)
         report.write("Sincerely, \n\nTSpace admin")
         report.close()
-        print "Total ingest: " + str(total_ingested)
+        #print "Total ingest: " + str(total_ingested)
         if total_ingested == 0:
                 os.remove(this_report_path)
         else:
@@ -141,7 +140,7 @@ def email(last_report):
     '''Send the report to the list of recipients'''
 
     if last_report == '':
-        print "Report does not exist. Please check if the report was correctly generated."
+        #print "Report does not exist. Please check if the report was correctly generated."
         sys.exit(1)
 
     jerry = smtplib.SMTP('mailer.library.utoronto.ca')
@@ -151,14 +150,13 @@ def email(last_report):
     fp.close()
 
     newman = 'tspace@library.utoronto.ca'
-    hawaii = ['xiaofeng.zhao@utoronto.ca', 'mariya.maistrovskaya@utoronto.ca', 'Accepted.manuscripts@cdnsciencepub.com', 'tspace@library.utoronto.ca']
+    hawaii = ['xiaofeng.zhao@utoronto.ca', 'mariya.maistrovskaya@utoronto.ca', 'Accepted.manuscripts@cdnsciencepub.com']
 
     body['Subject'] = 'NRC Research Press University of Toronto TSpace ingestion report'
     body['From'] = newman
     body['To'] = ", ".join(hawaii)
 
     jerry.sendmail(newman, hawaii, body.as_string()) 
-    # too many people got their mail
 
 count = 0
 for nrc_zip in os.listdir(DEPOSIT_DIR):

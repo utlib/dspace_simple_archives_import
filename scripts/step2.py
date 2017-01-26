@@ -65,26 +65,58 @@ collection_handles = {
         "er" : "1807/71221",
         "gen" : "1807/71222",
         "juvs" : "1807/71223"    
-    }
+    },
+	"nrc_collections_2017" : {
+		"apnm" : "1807/75476",
+		"as" : "1807/75477",
+		"bcb" : "1807/75478",
+		"cjb" : "1807/75479",
+		"cgj" : "1807/75480",
+		"cjc" : "1807/75481",
+		"cjce" : "1807/75482",
+		"cjas" : "1807/75483",
+		"cjes" : "1807/75484",
+		"cjps" : "1807/75485",
+		"cjfas" : "1807/75486",
+		"cjfr" : "1807/75487",
+		"cjm" : "1807/75488",
+		"cjp" : "1807/75489",
+		"cjpp" : "1807/75490",
+		"cjss" : "1807/75491",
+		"cjz" : "1807/75492",
+		"er" : "1807/75493",
+		"gen" : "1807/75494",
+		"juvs" : "1807/75495"
+	}
 }
 
 def archive():
-        '''
-		1. Backup the ingested DSpace simple archives into the archiving directory for potentially reingestion
-		2. Backup the original zipfiles	
-	'''
-	# backup DSpace simple archives	
 	os.chdir(INGEST_DIR)
+
+	# make a new dspace simple archive directory under archive if needed
 	destination = ARCHIVE_DSA_DIR + DATE
         if not os.path.exists(destination):
             os.mkdir(destination)
+
+	# move all simple archives under ingest into the new directory under archive
 	for journal in os.listdir("."):
 	    for year in os.listdir(os.path.join(INGEST_DIR, journal)):                
 		for item in os.listdir(os.path.join(INGEST_DIR, journal, year)):
-		    shutil.move(os.path.join(INGEST_DIR, journal, year, item), destination)
+			try:		
+				shutil.move(os.path.join(INGEST_DIR, journal, year, item), destination)
+			except shutil.Error:				
+				shutil.rmtree(os.path.join(INGEST_DIR, journal, year, item))
+
+	# move all zip files under deposit into archive/original_zips
 	os.chdir(DEPOSIT_DIR)
 	for zipfile in os.listdir("."):
-	    shutil.move(zipfile, ARCHIVE_ZIP_DIR)
+		try:
+			shutil.move(zipfile, ARCHIVE_ZIP_DIR)
+		except shutil.Error, e:
+			if "already exists" in str(e):
+				os.remove(zipfile)
+			else:
+				pass
 
 def upload():
         '''Upload all dspace simple archives from WORK_DIR to each journal's target collection'''

@@ -20,7 +20,7 @@ DATE = datetime.now().strftime("%A %B %d %Y")
 class NRCZipParser:	
 	
 	def __init__(self, zipname):
-		z = ZipFile(DEPOSIT_DIR + zipname)
+		z = ZipFile(DEPOSIT_DIR + zipname)		
 		z.extractall(EXTRACT_DIR)
                 self.filename = zipname.split(".zip")[0]
                 self.work_dir = os.path.join(EXTRACT_DIR, self.filename)
@@ -129,10 +129,13 @@ class NRCZipParser:
 		contents.close()
     
         def ingest_prep(self):
-            ingest_path = os.path.join(INGEST_DIR, self.journal_abbrv, self.year)
-            if not os.path.exists(ingest_path):
-                os.mkdir(ingest_path)                             
-            os.rename(self.work_dir, os.path.join(ingest_path, self.filename))                
+		ingest_path = os.path.join(INGEST_DIR, self.journal_abbrv, self.year)
+		if not os.path.exists(ingest_path):
+			os.mkdir(ingest_path)                             		
+		target = os.path.join(ingest_path, self.filename)
+		if os.path.exists(target):
+			shutil.rmtree(target)
+		shutil.move(self.work_dir, os.path.join(ingest_path, self.filename))				                  
 
         def email(message):
             '''Send the report to the list of recipients'''

@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # coding=utf8
 from bs4 import BeautifulSoup as makesoup
 from zipfile import ZipFile

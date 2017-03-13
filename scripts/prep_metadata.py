@@ -158,8 +158,11 @@ class NRCZipParser:
 
 for nrc_zip in os.listdir(DEPOSIT_DIR):
 	if nrc_zip.endswith('.zip'): 
-            parser = NRCZipParser(nrc_zip)
-            parser.reorganize()
-            parser.make_dc()
-            parser.make_contents()            
-            parser.ingest_prep() 
+		try:	
+			parser = NRCZipParser(nrc_zip)
+			parser.reorganize()
+			parser.make_dc()
+			parser.make_contents()            
+			parser.ingest_prep()
+		except Exception:
+			sys.exit(1)

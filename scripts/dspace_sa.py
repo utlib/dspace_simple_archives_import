@@ -1,5 +1,7 @@
 #
-# dspace_sa.py - crosswalk PubMed metadata to DSpace Dublin Core and prepare DSA for ingestion.
+# dspace_sa.py - crosswalk PubMed metadata to DSpace Dublin Core 
+#   and prepare DSpace Simple Archives for ingestion.
+#
 # Copyright (C) 2018 University of Toronto Libraries
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,30 +25,24 @@ from zipfile import ZipFile
 import os, shutil, glob, sys
 from datetime import datetime
 
-#dev = "/opt/dspace"
-dev = ""
-
-DEPOSIT_DIR = dev + "/tspace_scratch/nrc/deposit/"
-DEPOSIT_2016_DIR = dev + "/tspace_scratch/nrc/deposit_2016/"
-INGEST_DIR = dev + "/tspace_scratch/nrc/ingest/"
-EXTRACT_DIR = dev + "/tspace_scratch/nrc/extract/"
+DEPOSIT_DIR = "../deposit"
+EXTRACT_DIR = "../extract"
+INGEST_DIR = "../ingest"
 
 DOI_BASE = "http://www.nrcresearchpress.com/doi/abs/"
-
 DATESTAMP = datetime.now().strftime("%Y_%m_%d")
 DATE = datetime.now().strftime("%A %B %d %Y")
 
 class NRCZipParser:	
 	def __init__(self, zipname):
-    self.mkdirs()
+    os.mkdir(DEPOSIT_DIR)
+    os.mkdir(EXTRACT_DIR)
 		z = ZipFile(DEPOSIT_DIR + zipname)		
 		z.extractall(EXTRACT_DIR)
+
     self.filename = zipname.split(".zip")[0]
     self.work_dir = os.path.join(EXTRACT_DIR, self.filename)
     self.journal_abbrv = zipname.split("-")[0]
-
-  def mkdirs(self):
-    os.mkdir()  
 
 	def reorganize(self):
 		os.chdir(self.work_dir)
@@ -150,7 +146,8 @@ class NRCZipParser:
 				contents.write(f + '\n')
 		contents.close()
     
-        def ingest_prep(self):
+  def ingest_prep(self):
+    mkdir(INGEST_DIR)
 		ingest_path = os.path.join(INGEST_DIR, self.journal_abbrv, self.year)
 		if not os.path.exists(ingest_path):
 			os.mkdir(ingest_path)                             		

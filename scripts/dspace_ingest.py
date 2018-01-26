@@ -1,3 +1,23 @@
+#
+# dspace_ingest.py - invoke DSpace Import script on the prepared DSAs
+#   and archive the original ZIP files and DSAs into set locations
+#
+# Copyright (C) 2018 University of Toronto Libraries
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 #!/usr/bin/python
 import os
 from subprocess import call
@@ -7,16 +27,14 @@ import smtplib
 from email.mime.text import MIMEText
 import sys
 
-#dev = "/opt/dspace"
-dev = ""
+DEPOSIT_DIR = "../deposit/"
+INGEST_DIR = "../ingest/"
+EXTRACT_DIR = "../extract/"
+MAP_DIR = "../mapfiles/"
+ARCHIVE_DSA_DIR = "../archive/dspace_simple_archives/"
+ARCHIVE_ZIP_DIR = "../archive/original_zips/"
+REPORT_DIR = "../reports/"
 
-DEPOSIT_DIR = dev + "/tspace_scratch/nrc/deposit/"
-INGEST_DIR = dev + "/tspace_scratch/nrc/ingest/"
-EXTRACT_DIR = dev + "/tspace_scratch/nrc/extract/"
-MAP_DIR = dev + "/tspace_scratch/mapfiles/nrc/"
-ARCHIVE_DSA_DIR = dev + "/tspace_scratch/nrc/archive/dspace_simple_archives/"
-ARCHIVE_ZIP_DIR = dev + "/tspace_scratch/nrc/archive/original_zips/"
-REPORT_DIR = dev + "/tspace_scratch/nrc/reports/"
 DATE = datetime.now().strftime("_%B_%d_%Y")
 DATE_HUMAN = datetime.now().strftime("%B %d %Y")
 CURRENT_TIME = datetime.now().strftime("_%-I%p_%-M_%-S")

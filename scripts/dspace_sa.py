@@ -1,3 +1,21 @@
+#
+# dspace_sa.py - crosswalk PubMed metadata to DSpace Dublin Core and prepare DSA for ingestion.
+# Copyright (C) 2018 University of Toronto Libraries
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
 #!/usr/bin/python
 # coding=utf8
 from bs4 import BeautifulSoup as makesoup
@@ -19,13 +37,16 @@ DATESTAMP = datetime.now().strftime("%Y_%m_%d")
 DATE = datetime.now().strftime("%A %B %d %Y")
 
 class NRCZipParser:	
-	
 	def __init__(self, zipname):
+    self.mkdirs()
 		z = ZipFile(DEPOSIT_DIR + zipname)		
 		z.extractall(EXTRACT_DIR)
-                self.filename = zipname.split(".zip")[0]
-                self.work_dir = os.path.join(EXTRACT_DIR, self.filename)
-                self.journal_abbrv = zipname.split("-")[0]
+    self.filename = zipname.split(".zip")[0]
+    self.work_dir = os.path.join(EXTRACT_DIR, self.filename)
+    self.journal_abbrv = zipname.split("-")[0]
+
+  def mkdirs(self):
+    os.mkdir()  
 
 	def reorganize(self):
 		os.chdir(self.work_dir)
@@ -39,8 +60,8 @@ class NRCZipParser:
 				os.chdir("../")
 				shutil.rmtree(f)
 		for f in os.listdir("."):
-                        if f.endswith(".pdf"):
-                                self.manuscript = f			
+      if f.endswith(".pdf"):
+        self.manuscript = f			
 		
 	def make_dc(self):
 		os.chdir(self.work_dir)
@@ -62,10 +83,10 @@ class NRCZipParser:
 			tag_list.append(makesoup("<dcvalue element='title' qualifier='vernacular'>" + soup.VernacularTitle.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
                 
 		for author in soup.find_all("Author"):			
-		        middle_name = " " + author.MiddleName.string if author.MiddleName.string else ''
-                        new_tag = newsoup.new_tag("dcvalue", element='contributor', qualifier='author')
-                        new_tag.string = author.LastName.string.encode('utf8') + ", " + author.FirstName.string.encode('utf8') + " " + middle_name.encode('utf8')
-                        newsoup.dublin_core.append(new_tag)
+      middle_name = " " + author.MiddleName.string if author.MiddleName.string else ''
+      new_tag = newsoup.new_tag("dcvalue", element='contributor', qualifier='author')
+      new_tag.string = author.LastName.string.encode('utf8') + ", " + author.FirstName.string.encode('utf8') + " " + middle_name.encode('utf8')
+      newsoup.dublin_core.append(new_tag)
  
 			if author.Affiliation and author.Affiliation.string: 
 				tag_list.append(makesoup("<dcvalue element='affiliation' qualifier='institution'>" + author.Affiliation.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
@@ -85,22 +106,22 @@ class NRCZipParser:
 		month = soup.find(PubStatus="revised").find("Month").string
 		day = soup.find(PubStatus="revised").find("Day").string
 		if year is None:
-                        year = ''
-                if month is None:
-                        month = ''
-                if day is None:
-                        day = ''
+      year = ''
+    if month is None:
+      month = ''
+    if day is None:
+      day = ''
 		tag_list.append(makesoup("<dcvalue element='date' qualifier='revised'>" + year + "-" + month + "-" + day + "</dcvalue>", 'xml').contents[0])
 		year = soup.find(PubStatus="accepted").find("Year").string
                 self.year = year
 		month = soup.find(PubStatus="accepted").find("Month").string
 		day = soup.find(PubStatus="accepted").find("Day").string            
 		if year is None:
-                        year = ''
-                if month is None:
-                        month = ''
-                if day is None:
-                        day = ''
+      year = ''
+    if month is None:
+      month = ''
+    if day is None:
+      day = ''
 		tag_list.append(makesoup("<dcvalue element='date' qualifier='issued'>" + year + "-" + month + "-" + day + "</dcvalue>", 'xml').contents[0])
 		tag_list.append(makesoup("<dcvalue element='date' qualifier='accepted'>" + year + "-" + month + "-" + day + "</dcvalue>", 'xml').contents[0])
 		if soup.FullTextURL.string: 
@@ -138,28 +159,25 @@ class NRCZipParser:
 			shutil.rmtree(target)
 		shutil.move(self.work_dir, os.path.join(ingest_path, self.filename))				                  
 
-        def email(message):
-            '''Send the report to the list of recipients'''
+  def email(message):
+    '''Send the report to the list of recipients'''
+    jerry = smtplib.SMTP('mailer.library.utoronto.ca')
+    fp = open(last_report)
+    body = MIMEText(fp.read())
+    fp.close()
 
-            jerry = smtplib.SMTP('mailer.library.utoronto.ca')
+    newman = 'tspace@library.utoronto.ca'
+    hawaii = ['xiaofeng.zhao@utoronto.ca'] 
+    body['Subject'] = 'Email from step1.py of tspace.library.utoronto.ca'
+    body['From'] = newman
+    body['To'] = ", ".join(hawaii)
 
-            fp = open(last_report)
-            body = MIMEText(fp.read())
-            fp.close()
-
-            newman = 'tspace@library.utoronto.ca'
-            hawaii = ['xiaofeng.zhao@utoronto.ca'] 
-
-            body['Subject'] = 'Email from step1.py of tspace.library.utoronto.ca'
-            body['From'] = newman
-            body['To'] = ", ".join(hawaii)
-
-            jerry.sendmail(newman, hawaii, body.as_string())
+    jerry.sendmail(newman, hawaii, body.as_string())
 
 for nrc_zip in os.listdir(DEPOSIT_DIR):
-    if nrc_zip.endswith('.zip'):
-        parser = NRCZipParser(nrc_zip)
-        parser.reorganize()
-        parser.make_dc()
-        parser.make_contents()            
-        parser.ingest_prep()
+  if nrc_zip.endswith('.zip'):
+    parser = NRCZipParser(nrc_zip)
+    parser.reorganize()
+    parser.make_dc()
+    parser.make_contents()            
+    parser.ingest_prep()

@@ -185,10 +185,19 @@ class DSpaceDSAMaker:
     shutil.move(self.work_dir, os.path.join(ingest_path, self.filename))				                  
 
 if __name__ == "__main__":
-  for original_zip in os.listdir(DEPOSIT_DIR):
-    if original_zip.endswith('.zip'):
-      dsa_maker = DSpaceDSAMaker(original_zip)
-      dsa_maker.supplementary_files()
-      dsa_maker.crosswalk()
-      dsa_maker.contents()            
-      dsa_maker.ingest_prep()
+  if not os.path.isdir(DEPOSIT_DIR):
+    os.mkdir(DEPOSIT_DIR)
+    print("Initial launch.\n")
+    print("Made " + DEPOSIT_DIR)
+  
+  if not os.listdir(DEPOSIT_DIR):
+    print("Nothing to ingest. Please check " + DEPOSIT_DIR)
+  else:
+    print("Checking " + DEPOSIT_DIR + " for new items to ingest.")
+    for original_zip in os.listdir(DEPOSIT_DIR):
+      if original_zip.endswith('.zip'):
+        dsa_maker = DSpaceDSAMaker(original_zip)
+        dsa_maker.supplementary_files()
+        dsa_maker.crosswalk()
+        dsa_maker.contents()            
+        dsa_maker.ingest_prep()

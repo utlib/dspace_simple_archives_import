@@ -1,9 +1,10 @@
-# Intro
+# DSpace DSA Maker
+## Intro
 This script combo extracts article zip files that are transferred unto a server, crosswalks their metadata, prepares DSpace Simple Archive and ingest each article into DSpace.
 The scripts should be accessible to the server where zip files are being received, as well as the server where DSpace import can be accessed.
 The article zip files currently supported is PubMed Central.
 
-# Details
+## Details
 There are two scripts: DSpace DSA Maker and DSpace DSA Ingest.
 You must run DSA Maker first.
 The DSA Maker does the following:
@@ -16,19 +17,19 @@ The DSA Ingest does the following:
 2. Moves original zip files and DSAs into archives directories.
 3. Writes emails and reports
 
-# Server requirements
+## Server requirements
 * Python 2
 * Pip
 * BeautifulSoup4
 * Python XML parser
 
-# Installation
-## Mac
+## Installation
+### Mac
 1. Install Python 2.7
 2. pip install BeautifulSoup4
 3. pip install lxml
 
-## Linux
+### Linux
 TODO
 
 ## License

@@ -27,7 +27,7 @@ from datetime import datetime
 
 class DSpaceDSAMaker:	
   def __init__(self):    
-    print("Initial launch. Preparing work directories.")
+    print("Launching DSpace DSA Maker. \nPreparing work directories.")
 
     self.root = os.getcwd()
     self.deposit = os.path.join(self.root, '../deposit/')
@@ -205,4 +205,4 @@ class DSpaceDSAMaker:
     shutil.move(self.work_dir, os.path.join(ingest_path, self.filename))				                  
 
 if __name__ == "__main__":
-  dsa_maker = DSpaceDSAMaker()
+  DSpaceDSAMaker()

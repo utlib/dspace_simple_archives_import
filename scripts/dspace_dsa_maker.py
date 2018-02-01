@@ -25,23 +25,44 @@ from zipfile import ZipFile
 import os, shutil, glob, sys
 from datetime import datetime
 
-DEPOSIT_DIR = "../deposit"
-EXTRACT_DIR = "../extract"
-INGEST_DIR = "../ingest"
-
-DOI_BASE = "http://www.nrcresearchpress.com/doi/abs/"
-DATESTAMP = datetime.now().strftime("%Y_%m_%d")
-DATE = datetime.now().strftime("%A %B %d %Y")
-
 class DSpaceDSAMaker:	
-  def __init__(self, zipname):
-    os.mkdir(DEPOSIT_DIR)
-    os.mkdir(EXTRACT_DIR)
-    z = ZipFile(DEPOSIT_DIR + zipname)		
-    z.extractall(EXTRACT_DIR)
+  def __init__(self):    
+    print("Initial launch. Preparing work directories.")
 
+    self.root = os.getcwd()
+    self.deposit = os.path.join(self.root, '../deposit/')
+    self.extract = os.path.join(self.root, '../extract/')
+    self.ingest = os.path.join(self.root, '../ingest/')
+    for current_dir in [self.deposit, self.extract, self.ingest]:
+      if not os.path.isdir(current_dir):
+        os.mkdir(current_dir)
+        print("Made " + current_dir)      
+
+    self.doi = "http://www.nrcresearchpress.com/doi/abs/"
+    self.datetime = datetime.now().strftime("%Y_%m_%d")
+    self.date = datetime.now().strftime("%A %B %d %Y")
+
+    self.iterate()
+
+  def iterate(self):
+    if not os.listdir(self.deposit):
+      print("Nothing to ingest. Please check " + self.deposit)
+    else:
+      print("Checking " + self.deposit + " for new items to ingest.")
+      for original_zip in os.listdir(self.deposit):
+        if original_zip.endswith('.zip'):
+          print("Found " + original_zip)
+          self.init_zip(original_zip)
+          self.supplementary_files()
+          self.crosswalk()
+          self.contents()
+          self.ingest_prep()
+
+  def init_zip(self, zipname):
+    z = ZipFile(self.deposit + zipname)
+    z.extractall(self.extract)
     self.filename = zipname.split(".zip")[0]
-    self.work_dir = os.path.join(EXTRACT_DIR, self.filename)
+    self.work_dir = os.path.join(self.extract, self.filename)
     self.journal_name = zipname.split("-")[0]
 
   def supplementary_files(self):
@@ -100,7 +121,7 @@ class DSpaceDSAMaker:
     if author.Affiliation and author.Affiliation.string: 
       tag_list.append(makesoup("<dcvalue element='affiliation' qualifier='institution'>" + author.Affiliation.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
       tag_list.append(makesoup("<dcvalue element='type'>" + soup.PublicationType.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])		
-      tag_list.append(makesoup("<dcvalue element='identifier' qualifier='doi'>" + DOI_BASE + soup.find(IdType="doi").string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
+      tag_list.append(makesoup("<dcvalue element='identifier' qualifier='doi'>" + self.doi + soup.find(IdType="doi").string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
 
     # dates
     year = soup.find(PubStatus="received").find("Year").string 
@@ -175,29 +196,13 @@ class DSpaceDSAMaker:
     """Move completed DSA into ingestion directory,
     divided by journal name. Each journal corresponds with one collection.
     """
-    mkdir(INGEST_DIR)
-    ingest_path = os.path.join(INGEST_DIR, self.journal_name, self.year)
+    ingest_path = os.path.join(self.ingest, self.journal_name, self.year)
     if not os.path.exists(ingest_path):
-      os.mkdir(ingest_path)                             		
+      os.makedirs(ingest_path)                             		
     target = os.path.join(ingest_path, self.filename)
     if os.path.exists(target):
       shutil.rmtree(target)
     shutil.move(self.work_dir, os.path.join(ingest_path, self.filename))				                  
 
 if __name__ == "__main__":
-  if not os.path.isdir(DEPOSIT_DIR):
-    os.mkdir(DEPOSIT_DIR)
-    print("Initial launch.\n")
-    print("Made " + DEPOSIT_DIR)
-  
-  if not os.listdir(DEPOSIT_DIR):
-    print("Nothing to ingest. Please check " + DEPOSIT_DIR)
-  else:
-    print("Checking " + DEPOSIT_DIR + " for new items to ingest.")
-    for original_zip in os.listdir(DEPOSIT_DIR):
-      if original_zip.endswith('.zip'):
-        dsa_maker = DSpaceDSAMaker(original_zip)
-        dsa_maker.supplementary_files()
-        dsa_maker.crosswalk()
-        dsa_maker.contents()            
-        dsa_maker.ingest_prep()
+  dsa_maker = DSpaceDSAMaker()

@@ -18,19 +18,17 @@ The DSA Ingest does the following:
 3. Writes emails and reports
 
 ## Server requirements
-* Python 2
+* Python 2.7
 * Pip
 * BeautifulSoup4
 * Python XML parser
 
-## Installation
-### Mac
-1. Install Python 2.7
-2. pip install BeautifulSoup4
-3. pip install lxml
-
-### Linux
-TODO
+## Usage
+* Run dspace\_dsa\_maker.py. This will make the deposit directory.
+* Place all zip files into the made deposit directory.
+* Run dspace\_dsa\_maker.py again. This will make DSAs into ingest directory.
+* Edit dspace_dsa_ingest.py with the info of your DSpace instance.
+* Run dspace_dsa_ingest.py
 
 ## License
 This project is licensed under the terms of the GNU GPLv3 license.

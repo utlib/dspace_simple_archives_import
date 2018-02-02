@@ -30,5 +30,9 @@ The DSA Ingest does the following:
 * Edit dspace_dsa_ingest.py with the info of your DSpace instance.
 * Run dspace_dsa_ingest.py
 
+## Author
+University of Toronto Libraries (<tspace@library.utoronto.ca>)
+
 ## License
 This project is licensed under the terms of the GNU GPLv3 license.
+

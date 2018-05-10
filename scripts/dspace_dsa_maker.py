@@ -31,16 +31,24 @@ class DSpaceDSAMaker:
 
     self.root = os.getcwd()
     self.deposit = os.path.join(self.root, '../deposit/')
-    self.extract = os.path.join(self.root, '../extract/')
+    self.extract = os.path.join(self.root, '../extract/')    
     self.ingest = os.path.join(self.root, '../ingest/')
+
+    # purge the extract directory of failed ingests
+    if os.path.isdir(self.extract):
+      shutil.rmtree(self.extract)
+
+    # make deposit, extract and ingest work directories
     for current_dir in [self.deposit, self.extract, self.ingest]:
       if not os.path.isdir(current_dir):
         os.mkdir(current_dir)
-        print("Made " + current_dir)      
+        print("Made " + current_dir)
 
-    self.doi = "http://www.nrcresearchpress.com/doi/abs/"
     self.datetime = datetime.now().strftime("%Y_%m_%d")
     self.date = datetime.now().strftime("%A %B %d %Y")
+
+    # Set the year of publication based on metadata
+    self.year = ''
 
     self.iterate()
 
@@ -52,13 +60,13 @@ class DSpaceDSAMaker:
       for original_zip in os.listdir(self.deposit):
         if original_zip.endswith('.zip'):
           print("Found " + original_zip)
-          self.init_zip(original_zip)
+          self.extract_zip(original_zip)
           self.supplementary_files()
           self.crosswalk()
           self.contents()
           self.ingest_prep()
 
-  def init_zip(self, zipname):
+  def extract_zip(self, zipname):
     z = ZipFile(self.deposit + zipname)
     z.extractall(self.extract)
     self.filename = zipname.split(".zip")[0]
@@ -90,84 +98,53 @@ class DSpaceDSAMaker:
     """Convert original XML into DSpace DC - Tag by tag
     """
     os.chdir(self.work_dir)
+
+    # assume the main metadata is the only XML file in the original directory
     base = open(glob.glob("*.xml")[0])
     soup = makesoup(base, 'xml')
+
+    # make a container soup, and make smaller soups for each field, which are inserted into the container.
     newsoup = makesoup('<dublin_core schema="dc"></dublin_core>', 'xml')
-    tag_list = []		
-    tag_list.append(makesoup("<dcvalue element='publisher'>NRC Research Press (a division of Canadian Science Publishing)</dcvalue>", 'xml').contents[0])
+    tag_list = []
 
-    if soup.Replaces.string:
-      tag_list.append(makesoup("<dcvalue element='replaces'>" + soup.Replaces.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
+    # title
+    tag_list.append(makesoup("<dcvalue element='title'>" + soup.find('article-title').string + "</dcvalue>", 'xml').contents[0])
 
-    # publication name
-    tag_list.append(makesoup("<dcvalue element='publication' qualifier='journal'>" + soup.JournalTitle.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
+    # author(s)
+    for author_container in soup.find_all('contrib', {'contrib-type' : 'author'}):
+      tag_list.append(makesoup("<dcvalue element='contributor' qualifier='author'>" + author_container.surname.string + ", " + author_container.find('given-names').string  + "</dcvalue>", 'xml').contents[0])
+
+    for author_container in soup.find_all('contrib', {'contrib-type' : 'editor'}):
+      tag_list.append(makesoup("<dcvalue element='contributor' qualifier='editor'>" + author_container.surname.string + ", " + author_container.find('given-names').string  + "</dcvalue>", 'xml').contents[0])
+
+    # abstract
+    tag_list.append(makesoup("<dcvalue element='abstract'>" + soup.abstract.p.string + "</dcvalue>", 'xml').contents[0])
+
+    # date(s)
+    date_accepted = soup.find('date', {'date-type' : 'accepted'})    
+    tag_list.append(makesoup("<dcvalue element='date' qualifier='accepted'>" + "-".join((date_accepted.year.string, date_accepted.month.string, date_accepted.day.string)) + "</dcvalue>", 'xml').contents[0])
+    self.year = date_accepted.year.string
+
+    date_revised = soup.find('date', {'date-type' : 'rev-recd'})
+    tag_list.append(makesoup("<dcvalue element='date' qualifier='revised'>" + "-".join((date_revised.year.string, date_revised.month.string, date_revised.day.string)) + "</dcvalue>", 'xml').contents[0])
+
+    date_received = soup.find('date', {'date-type' : 'received'})
+    tag_list.append(makesoup("<dcvalue element='date' qualifier='received'>" + "-".join((date_received.year.string, date_received.month.string, date_received.day.string)) + "</dcvalue>", 'xml').contents[0])
+    
+    tag_list.append(makesoup("<dcvalue element='date' qualifier='issued'>" + "-".join((date_accepted.year.string, date_accepted.month.string, date_accepted.day.string)) + "</dcvalue>", 'xml').contents[0])
+
+    # publisher
+    tag_list.append(makesoup("<dcvalue element='publisher'>" + soup.find('publisher-name').string + "</dcvalue>", 'xml').contents[0])
 
     # issn
-    tag_list.append(makesoup("<dcvalue element='identifier' qualifier='issn'>" + soup.Issn.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
-
-    # titles
-    no_tag_title = soup.ArticleTitle.string.replace('<b>', '').replace('<i>', '').replace('</i>', '').replace('</b>','').replace('<sub>','').replace('</sub>','').replace('<sup>','').replace('</sup>','');
-    tag_list.append(makesoup("<dcvalue element='title'>" + no_tag_title + "</dcvalue>", 'xml').contents[0])
-    if soup.VernacularTitle.string:                        
-      tag_list.append(makesoup("<dcvalue element='title' qualifier='vernacular'>" + soup.VernacularTitle.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
-
-    # authors
-    for author in soup.find_all("Author"):			
-      middle_name = " " + author.MiddleName.string if author.MiddleName.string else ''
-      new_tag = newsoup.new_tag("dcvalue", element='contributor', qualifier='author')
-      new_tag.string = author.LastName.string.encode('utf8') + ", " + author.FirstName.string.encode('utf8') + " " + middle_name.encode('utf8')
-      newsoup.dublin_core.append(new_tag)
-
-    if author.Affiliation and author.Affiliation.string: 
-      tag_list.append(makesoup("<dcvalue element='affiliation' qualifier='institution'>" + author.Affiliation.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
-      tag_list.append(makesoup("<dcvalue element='type'>" + soup.PublicationType.string.encode('utf8') + "</dcvalue>", 'xml').contents[0])		
-      tag_list.append(makesoup("<dcvalue element='identifier' qualifier='doi'>" + self.doi + soup.find(IdType="doi").string.encode('utf8') + "</dcvalue>", 'xml').contents[0])
-
-    # dates
-    year = soup.find(PubStatus="received").find("Year").string 
-    month = soup.find(PubStatus="received").find("Month").string
-    day = soup.find(PubStatus="received").find("Day").string
-    if year is None:
-      year = ''
-    if month is None:
-      month = ''
-    if day is None:
-      day = ''
-    tag_list.append(makesoup("<dcvalue element='date' qualifier='submitted'>" + year + "-" + month + "-" + day + "</dcvalue>", 'xml').contents[0])
-
-    year = soup.find(PubStatus="revised").find("Year").string
-    month = soup.find(PubStatus="revised").find("Month").string
-    day = soup.find(PubStatus="revised").find("Day").string
-    if year is None:
-      year = ''
-    if month is None:
-      month = ''
-    if day is None:
-      day = ''
-    tag_list.append(makesoup("<dcvalue element='date' qualifier='revised'>" + year + "-" + month + "-" + day + "</dcvalue>", 'xml').contents[0])
-
-    year = soup.find(PubStatus="accepted").find("Year").string
-    self.year = year
-    month = soup.find(PubStatus="accepted").find("Month").string
-    day = soup.find(PubStatus="accepted").find("Day").string            
-    if year is None:
-      year = ''
-    if month is None:
-      month = ''
-    if day is None:
-      day = ''
-    tag_list.append(makesoup("<dcvalue element='date' qualifier='issued'>" + year + "-" + month + "-" + day + "</dcvalue>", 'xml').contents[0])
-    tag_list.append(makesoup("<dcvalue element='date' qualifier='accepted'>" + year + "-" + month + "-" + day + "</dcvalue>", 'xml').contents[0])
+    tag_list.append(makesoup("<dcvalue element='identifier' qualifier='issn'>" + soup.find("issn", {'pub-type' : 'ppub'}).string + "</dcvalue>", 'xml').contents[0])
   
-    # url
-    if soup.FullTextURL.string: 
-      tag_list.append(makesoup("<dcvalue element='identifier' qualifier='uri'>" + soup.FullTextURL.string + "</dcvalue>", 'xml').contents[0])
-  
-    # abstract
-    no_tag_abstract = soup.Abstract.string.replace('<b>', '').replace('<i>', '').replace('</i>', '').replace('</b>','').replace('<sub>','').replace('</sub>','');
-    tag_list.append(makesoup("<dcvalue element='description' qualifier='abstract'>" + no_tag_abstract.encode('utf8') + "</dcvalue>", 'xml').contents[0])
-    tag_list.append(makesoup("<dcvalue element='description' qualifier='disclaimer'>The accepted manuscript in pdf format is listed with the files at the bottom of this page. The presentation of the authors' names and (or) special characters in the title of the manuscript may differ slightly between what is listed on this page and what is listed in the pdf file of the accepted manuscript; that in the pdf file of the accepted manuscript is what was submitted by the author.</dcvalue>", "xml").contents[0])
+    # essn
+    tag_list.append(makesoup("<dcvalue element='identifier' qualifier='issn'>" + soup.find("issn", {'pub-type' : 'epub'}).string + "</dcvalue>", 'xml').contents[0]) 
 
+    # DOI
+    tag_list.append(makesoup("<dcvalue element='identifier' qualifier='doi'>https://dx.doi.org/" + soup.find('article-id', {'pub-id-type' : 'doi'}).string + "</dcvalue>", 'xml').contents[0])
+  
     # insert all created tags from taglist into the container soup
     dc = newsoup.find('dublin_core')
     for tag in tag_list:

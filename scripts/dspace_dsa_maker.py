@@ -29,7 +29,7 @@ class DSpaceDSAMaker:
   def __init__(self):    
     print("Launching DSpace DSA Maker. \nPreparing work directories.")
 
-    self.root = os.getcwd()
+    self.root = os.path.dirname(os.path.abspath(__file__))
     self.deposit = os.path.join(self.root, '../deposit/')
     self.extract = os.path.join(self.root, '../extract/')    
     self.ingest = os.path.join(self.root, '../ingest/')
@@ -60,47 +60,26 @@ class DSpaceDSAMaker:
       for original_zip in os.listdir(self.deposit):
         if original_zip.endswith('.zip'):
           print("Found " + original_zip)
+          self.current_zip = original_zip 
           self.extract_zip(original_zip)
-          self.supplementary_files()
           self.crosswalk()
           self.contents()
-          self.ingest_prep()
+          self.move_to_ingest()
 
   def extract_zip(self, zipname):
     z = ZipFile(self.deposit + zipname)
     z.extractall(self.extract)
     self.filename = zipname.split(".zip")[0]
-    self.work_dir = os.path.join(self.extract, self.filename)
+    self.extract_dir = os.path.join(self.extract, self.filename)
     self.journal_name = zipname.split("-")[0]
-
-  def supplementary_files(self):
-    """Extract supplementary files into DSA.
-    Remove irrelevant files.
-    Set main PDF filename.
-    """
-    os.chdir(self.work_dir)
-
-    for f in os.listdir("."):
-      if f.endswith("manifest.html") or f == "PubMed.dtd":
-        os.remove(f)
-      elif os.path.isdir(f):
-        os.chdir(f)        
-        for pdf in glob.glob("*"):
-          shutil.move(pdf, "../")
-        os.chdir("../")
-        shutil.rmtree(f)
-
-    for f in os.listdir("."):
-      if f.endswith(".pdf"):
-        self.manuscript = f			
 
   def crosswalk(self):
     """Convert original XML into DSpace DC - Tag by tag
     """
-    os.chdir(self.work_dir)
+    os.chdir(self.extract_dir)
 
     # assume the main metadata is the only XML file in the original directory
-    base = open(glob.glob("*.xml")[0])
+    base = open(glob.glob("*-metadata.xml")[0])
     soup = makesoup(base, 'xml')
 
     # make a container soup, and make smaller soups for each field, which are inserted into the container.
@@ -161,15 +140,38 @@ class DSpaceDSAMaker:
     """The contents file is required by DSA.
     This file simply lists all bitstreams that will be ingested in an DSA.
     """    
-    os.chdir(self.work_dir)
+    os.chdir(self.extract_dir)
+
+    # assuming dublin_core.xml has been successfully made. Old MD can be deleted.
+    os.remove(glob.glob("*-metadata.xml")[0])
+    # also delete the directories that were transferred but never used - ScholarOne sends these by default
+    os.remove(glob.glob("*-manifest.html")[0])
+    shutil.rmtree('pdf_renditions')
+    shutil.rmtree('doc')
+
+    # move the main PDF from its containing directory to the root directory we are working in
+    if os.path.isdir('pdf'):
+      self.manuscript = os.path.basename(glob.glob('pdf/*.pdf')[0])
+      shutil.move('pdf/' + self.manuscript, '.')
+      shutil.rmtree('pdf') 
+    else:
+      sys.exit("Unable to produce DSpaceSA for UTP zip file " + self.current_zip + "\nDirectory 'pdf' could not be found.")
+    # in the same fashion, move any suppl files to the root directory
+    if os.path.isdir('suppl_data'):
+      for f in os.listdir('suppl_data'):
+        shutil.move('suppl_data/' + f, '.')
+      shutil.rmtree('suppl_data')
+
+    # add all non-dspace files into the contents file list text file for dspace import
+    # assuming we cleaned up all non-importable files such as pdf_renditions, doc and the manifest
     contents = open('contents', 'w')
     contents.write(self.manuscript + "\n")
     for f in os.listdir("."):
-      if f not in ['dublin_core.xml', 'contents', self.manuscript] and not f.endswith("metadata.xml"):
+      if f not in ['dublin_core.xml', 'contents', self.manuscript]:
         contents.write(f + '\n')
     contents.close()
 
-  def ingest_prep(self):
+  def move_to_ingest(self):
     """Move completed DSA into ingestion directory,
     divided by journal name. Each journal corresponds with one collection.
     """
@@ -179,7 +181,7 @@ class DSpaceDSAMaker:
     target = os.path.join(ingest_path, self.filename)
     if os.path.exists(target):
       shutil.rmtree(target)
-    shutil.move(self.work_dir, os.path.join(ingest_path, self.filename))				                  
+    shutil.move(self.extract_dir, os.path.join(ingest_path, self.filename))				                  
 
 if __name__ == "__main__":
   DSpaceDSAMaker()

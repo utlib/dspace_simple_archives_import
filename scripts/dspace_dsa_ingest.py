@@ -1,6 +1,6 @@
 #
-# dspace_ingest.py - invoke DSpace Import script on the prepared DSAs
-#   and archive the original ZIP files and DSAs into set locations
+# dspace_ingest.py - invoke DSpace Import script on the prepared DSpace Simple Archives
+#   and archive the original zip files and DSpace Simple Archives
 #
 # Copyright 2018 University of Toronto Libraries
 #
@@ -27,6 +27,8 @@ import sys
 
 class DSpaceDSAIngest:
   def __init__(self):
+    """Make the working directories and DSpace collection handles dictionary.
+    """
     print("Launching DSpace DSA Ingest.\nPreparing work directories.")
 
     self.root = os.getcwd()
@@ -50,7 +52,6 @@ class DSpaceDSAIngest:
 
     self.collection_handles = {
       "test_collections_2017" : {
-        "cjc" : "1234/123460",
         "test_collection3" : "1234/123458",
         "test_collection4" : "1234/123459",
       },
@@ -65,8 +66,9 @@ class DSpaceDSAIngest:
       self.archive()
 
   def archive(self):
-    """Move generated DSAs into archive directory.
-    Move original ZIP files into archive directory.
+    """Run after upload(). Move items from the ingest directories into 
+       The archive directories for preservation/re-ingestion purpose.
+       You can skip this step or redefine the archive location.
     """
     os.chdir(self.ingest)
     destination = os.path.join(self.dsa_archive, self.date)
@@ -92,7 +94,8 @@ class DSpaceDSAIngest:
           pass
 
   def upload(self):
-    """Upload all dspace simple archives from WORK_DIR to each journal's target collection
+    """Use DSpace's import script on the ingest directories, matched with the
+      collection handles dictionary.
     """
     os.chdir(self.ingest)
     indent = "\t"
@@ -120,11 +123,11 @@ class DSpaceDSAIngest:
           report.write("Ingested " + folder + " for journal " + journal_folder + " for year " + year_folder + " \n\n")
 
           if count > 1:    
-            user = "xiaofeng.zhao@utoronto.ca"
+            user = "yourname@yourdspace.com"
             source = os.path.join(self.ingest, journal_folder, year_folder)
             collection = self.collection_handles["test_collections_" + year_folder][journal_folder]
             mapfile = self.mapfiles + journal_folder + "_" + year_folder + self.date + self.time
-            status = call(["/opt/dspace/bin/dspace", "import", "-a", "-e", user, "-s", source, "-c", collection, "-m", mapfile])
+            status = call(["/dspace_root/bin/dspace", "import", "-a", "-e", user, "-s", source, "-c", collection, "-m", mapfile])
             if status != 0:
               report.close()
               os.remove(this_report_path)
@@ -143,13 +146,13 @@ class DSpaceDSAIngest:
     """
     if last_report == '':
       sys.exit(1)
-    server = smtplib.SMTP('mailer.library.utoronto.ca')
+    server = smtplib.SMTP('smtp.yourdspace.com')
     fp = open(last_report)
     body = MIMEText(fp.read())
     fp.close()
 
     sender = 'dspace@library.utoronto.ca'
-    recipients = ['xiaofeng.zhao@utoronto.ca']
+    recipients = ['yourname@yourdspace.com']
     body['Subject'] = 'DSpace ingestion report'
     body['From'] = sender 
     body['To'] = ", ".join(recipients)

@@ -1,6 +1,5 @@
 #
-# dspace_dsa_maker.py - crosswalk PubMed metadata to DSpace Dublin Core 
-#   and prepare DSpace Simple Archives (DSA) for ingestion.
+# dspace_dsa_maker.py - prepare DSpace Simple Archives for import.
 #
 # Copyright 2018 University of Toronto Libraries
 #
@@ -21,10 +20,11 @@
 from bs4 import BeautifulSoup as makesoup
 from zipfile import ZipFile
 import os, shutil, glob, sys
-from datetime import datetime
 
 class DSpaceDSAMaker:	
   def __init__(self):    
+    """Make working directories and start iteration of deposited zips.
+    """    
     print("Launching DSpace DSA Maker. \nPreparing work directories.")
 
     self.root = os.path.dirname(os.path.abspath(__file__))
@@ -42,15 +42,14 @@ class DSpaceDSAMaker:
         os.mkdir(current_dir)
         print("Made " + current_dir)
 
-    self.datetime = datetime.now().strftime("%Y_%m_%d")
-    self.date = datetime.now().strftime("%A %B %d %Y")
-
     # Set the year of publication based on metadata
     self.year = ''
 
     self.iterate()
 
   def iterate(self):
+    """For each zip file in the deposit directory, call work functions.
+    """
     if not os.listdir(self.deposit):
       print("Nothing to ingest. Please check " + self.deposit)
     else:
@@ -65,6 +64,8 @@ class DSpaceDSAMaker:
           self.move_to_ingest()
 
   def extract_zip(self, zipname):
+    """Extract one zip file and set up instance variables for later use.
+    """
     z = ZipFile(self.deposit + zipname)
     z.extractall(self.extract)
     self.filename = zipname.split(".zip")[0]
@@ -72,7 +73,8 @@ class DSpaceDSAMaker:
     self.journal_name = zipname.split("-")[0]
 
   def crosswalk(self):
-    """Convert original XML into DSpace DC - Tag by tag
+    """Produce dublin_core.xml by matching tags from original XML to user-defined tags.
+      Change this function to match your original XML fieldset.
     """
     os.chdir(self.extract_dir)
 
@@ -135,8 +137,9 @@ class DSpaceDSAMaker:
     os.chdir("../")
 
   def contents(self):
-    """The contents file is required by DSA.
-    This file simply lists all bitstreams that will be ingested in an DSA.
+    """Generate the plain text list of bitstreams for DSpace import. 
+      Common use case is a single PDF, sometimes with supplementary files of all formats.
+      This uses filename matching, so change the pattern according to your setup.
     """    
     os.chdir(self.extract_dir)
 
@@ -153,7 +156,7 @@ class DSpaceDSAMaker:
       shutil.move('pdf/' + self.manuscript, '.')
       shutil.rmtree('pdf') 
     else:
-      sys.exit("Unable to produce DSpaceSA for UTP zip file " + self.current_zip + "\nDirectory 'pdf' could not be found.")
+      sys.exit("Unable to produce DSpaceSA for zip file " + self.current_zip + "\nDirectory 'pdf' could not be found.")
     # in the same fashion, move any suppl files to the root directory
     if os.path.isdir('suppl_data'):
       for f in os.listdir('suppl_data'):
@@ -170,8 +173,9 @@ class DSpaceDSAMaker:
     contents.close()
 
   def move_to_ingest(self):
-    """Move completed DSA into ingestion directory,
-    divided by journal name. Each journal corresponds with one collection.
+    """Since DSpace import requires a root directory for each collection,
+      separate deposit item into directories that map to collections in DSpace.
+      The import python script will pick these up.
     """
     ingest_path = os.path.join(self.ingest, self.journal_name, self.year)
     if not os.path.exists(ingest_path):

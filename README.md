@@ -1,4 +1,4 @@
-# DSpace DSA Maker
+# DSpace Simple Archives Importer
 ## Intro
 This script combo extracts article zip files that are transferred unto a server, crosswalks their metadata, prepares DSpace Simple Archive and ingest each article into DSpace.
 The scripts should be accessible to the server where zip files are being received, as well as the server where DSpace import can be accessed.
@@ -39,5 +39,4 @@ The DSA Ingest does the following:
 University of Toronto Libraries (<tspace@library.utoronto.ca>)
 
 ## License
-This project is licensed under the terms of the GNU GPLv3 license.
-
+DSpace Simple Archives Importer is licensed under Apache License 2.0.

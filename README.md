@@ -14,7 +14,7 @@ This utility can be set up to run periodically to watch for new deposits and imp
 ## Installation
 
 1. Clone the repository on the server running DSpace, or a space accessible by DSpace.
-2. Run `scripts/dspace\_dsa\_maker.py`  
+2. Run `scripts/dspace_dsa_maker.py`  
 The maker script will initiate working directories.
 The location of each working directory is specified in the two python scripts. The values can be adjusted as needed.
 
